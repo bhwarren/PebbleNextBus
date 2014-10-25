@@ -184,8 +184,6 @@ void window_load(Window *window) {
   // Here we load the bitmap assets
   // resource_init_current_app must be called before all asset loading
 
-  // And also load the background
-  menu_background = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND_BRAINS);
 
   // Now we prepare to initialize the menu layer
   // We need the bounds to specify the menu layer's viewport size
