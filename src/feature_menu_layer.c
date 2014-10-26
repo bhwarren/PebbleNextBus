@@ -3,7 +3,7 @@
 #define NUM_MENU_SECTIONS 1
 #define NUM_FIRST_MENU_ITEMS 4
 
-#define NUM_NEARBY_BUSES 5
+#define NUM_NEARBY_BUSES 15
 #define NUM_NEARBY_MENU_SECTIONS 1
 	
 typedef struct {
@@ -117,6 +117,26 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   }
 }
 
+static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+	
+	// Determine which section we're going to draw in
+  if (cell_index->section == 0) {
+    
+		// Use the row to specify which item we'll draw
+		int arr_pos = cell_index->row;
+		
+		char title[70] = "\0";
+
+		strcat(title, nearby_buses[arr_pos].bus_route);
+		//strcat(title, " ");
+		//strcat(title, nearby_buses[arr_pos].stop);
+		strcat(title, "   ");
+		strcat(title, nearby_buses[arr_pos].arrival_time);
+		
+    menu_cell_basic_draw(ctx, cell_layer, title, nearby_buses[arr_pos].stop, NULL);
+  }
+}
+
 void get_buses_from_server(){
 
 	int iterator;
@@ -133,63 +153,23 @@ void get_buses_from_server(){
 	
 }
 
-
-static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
+// Here we capture when a user selects a menu item
+void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+  // Use the row to specify which item will receive the select action
 	
-	// Determine which section we're going to draw in
-  if (cell_index->section == 0) {
-      // Use the row to specify which item we'll draw
-		
-		int arr_pos = cell_index->row;
-		
-		char title[70] = "\0";
-
-		strcat(title, nearby_buses[arr_pos].bus_route);
-		//strcat(title, " ");
-		//strcat(title, nearby_buses[arr_pos].stop);
-		strcat(title, " ");
-		strcat(title, nearby_buses[arr_pos].arrival_time);
-		
-    menu_cell_basic_draw(ctx, cell_layer, title, nearby_buses[arr_pos].stop, NULL);
-  }
-}
-	
-void load_nearby_menu(){
 	//need to get the bus options, then load them into the nearby_menu_layer
+	//this is possible b/c it gets drawn only after it is added to the window
 	get_buses_from_server();
 	
 	//hide the main menu layer
 	layer_set_hidden((Layer *)menu_layer, true);
+	
 	//register the click handler with the bus menu
 	menu_layer_set_click_config_onto_window(nearby_menu_layer, window);
 
 	//show the nearby buses
 	layer_add_child(window_layer, menu_layer_get_layer(nearby_menu_layer));
-}
 
-// Here we capture when a user selects a menu item
-void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-  // Use the row to specify which item will receive the select action
-				load_nearby_menu();
-/*
-  switch (cell_index->row) {
-		case 0:
-			//make a new menu with list of buses close by
-			load_nearby_menu();
-			break;
-		case 1:
-			//make a new menu of stops available nearby
-			load_nearby_menu();
-			break;
-		case 2:
-			//make a new menu to choose favorite stops already saved
-			load_nearby_menu();
-			break;
-		case 3:
-			//show a text info screen
-			load_nearby_menu();
-			break;
-	}*/
 }
 
 //Show all of the Bus info on the screen
@@ -219,14 +199,9 @@ void load_bus_info(int index){
 	
 	//arrival time
 	arrival_text_layer = text_layer_create(GRect(0, 90, 144, 20));
+	text_layer_set_font(arrival_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
 	text_layer_set_text(arrival_text_layer, b_info->arrival_time);																							 
 		
-	/*//second arrival time
-	second_arrival_text_layer = text_layer_create(GRect(0, 110, 144, 20));
-	char buff2[5];
-	snprintf(buff2, sizeof(buff2), "%d", b_info->second_arrival_time);
-	text_layer_set_text(second_arrival_text_layer, buff2);
-*/
 	
 	//add all layers to screen
 	layer_add_child(window_layer, text_layer_get_layer(route_text_layer));
@@ -235,13 +210,10 @@ void load_bus_info(int index){
 	layer_add_child(window_layer, text_layer_get_layer(arrival_text_layer));
 //	layer_add_child(window_layer, text_layer_get_layer(second_arrival_text_layer));
 
-
-	//layer_add_child(window_layer, text_layer_get_layer(tl));
 }
 
 void nearby_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   // Use the row to specify which item will receive the select action
-
 	load_bus_info(cell_index->row);
 }
 
@@ -249,7 +221,6 @@ void nearby_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
 void window_load(Window *window) {
   // Here we load the bitmap assets
   // resource_init_current_app must be called before all asset loading
-
 	
   // Now we prepare to initialize the menu layer
   // We need the bounds to specify the menu layer's viewport size
@@ -315,6 +286,4 @@ int main(void) {
   app_event_loop();
 
   window_destroy(window);
-	
-	free(b_info);
 }
