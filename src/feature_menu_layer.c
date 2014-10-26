@@ -152,9 +152,11 @@ void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *da
 }
 
 //load the specified bus view
-void load_bus_info(BusInfo* selected_bus){
+void load_bus_info(int i){
 	//build bus view
-	bus_view_layer
+	layer_set_hidden((Layer *)nearby_menu_layer, true);
+	text_layer_set_text(bus_text_layer, "hello pebble");
+	layer_add_child(window_layer, text_layer_get_layer(bus_text_layer));
 }
 
 void nearby_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
