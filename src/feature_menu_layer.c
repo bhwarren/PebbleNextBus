@@ -22,13 +22,18 @@ void window_load(Window *window);
 
 
 static Window *window;
+static Window* nearby_buses_window;
+static Window* bus_info_window;
 
 //for testing purposes, do this the right way later
-BusInfo* b_info;
+//BusInfo* b_info;
 
 // This is a menu layer
 // You have more control than with a simple menu layer
 Layer *window_layer;
+Layer* nearby_buses_window_layer;
+Layer* bus_info_window_layer;
+
 static MenuLayer *menu_layer;
 static MenuLayer *nearby_menu_layer;
 
@@ -157,8 +162,8 @@ void get_buses_from_server(){
 		else{
 			b_info->bus_route = "";
 			b_info->stop = "";
-b_info->direction = "";
-		b_info->arrival_time = "";
+			b_info->direction = "";
+			b_info->arrival_time = "";
 		}
 		
 		
@@ -170,21 +175,19 @@ b_info->direction = "";
 
 // Here we capture when a user selects a menu item
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
+	
   // Use the row to specify which item will receive the select action
 	
 	//need to get the bus options, then load them into the nearby_menu_layer
 	//this is possible b/c it gets drawn only after it is added to the window
 	get_buses_from_server();
+
 	
 	//hide the main menu layer
 	layer_set_hidden((Layer *)menu_layer, true);
-	
-	//register the click handler with the bus menu
-	menu_layer_set_click_config_onto_window(nearby_menu_layer, window);
 
 	//show the nearby buses
-	layer_add_child(window_layer, menu_layer_get_layer(nearby_menu_layer));
-
+	window_stack_push(nearby_buses_window, true);
 }
 
 //Show all of the Bus info on the screen
@@ -199,8 +202,8 @@ void load_bus_info(int index){
 	
 	//hide nearby menu list
 	layer_set_hidden((Layer *)nearby_menu_layer, true);
-
-	route_text_layer = text_layer_create(GRect(0,0,144,50));
+	
+		route_text_layer = text_layer_create(GRect(0,0,144,50));
 //	text_layer_set_background_color(route_text_layer, GColorClear);
 //  text_layer_set_text_color(route_text_layer, GColorBlack);
 	text_layer_set_text_alignment(route_text_layer, GTextAlignmentCenter);
@@ -224,13 +227,9 @@ void load_bus_info(int index){
 	text_layer_set_text(arrival_text_layer, b_info->arrival_time);																							 
 		
 	
-	//add all layers to screen
-	layer_add_child(window_layer, text_layer_get_layer(route_text_layer));
-	layer_add_child(window_layer, text_layer_get_layer(stop_text_layer));
-	layer_add_child(window_layer, text_layer_get_layer(direction_text_layer));
-	layer_add_child(window_layer, text_layer_get_layer(arrival_text_layer));
-//	layer_add_child(window_layer, text_layer_get_layer(second_arrival_text_layer));
-
+	
+	//push bus_info_window on stack
+	window_stack_push(bus_info_window, true);
 }
 
 void nearby_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
@@ -251,7 +250,6 @@ void window_load(Window *window) {
 
   // Create the menu layer
   menu_layer = menu_layer_create(bounds);
-  nearby_menu_layer = menu_layer_create(bounds);
 	
 
   // Set all the callbacks for the menu layer
@@ -263,6 +261,22 @@ void window_load(Window *window) {
     .draw_row = menu_draw_row_callback,
     .select_click = menu_select_callback,
   });
+
+
+  // Bind the menu layer's click config provider to the window for interactivity
+  menu_layer_set_click_config_onto_window(menu_layer, window);
+
+  // Add it to the window for display
+  layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
+}
+
+
+void nearby_buses_window_load(Window *window) {
+	nearby_buses_window_layer = window_get_root_layer(window);
+	GRect bounds = layer_get_frame(nearby_buses_window_layer);
+	
+	nearby_menu_layer = menu_layer_create(bounds);
+	
 	menu_layer_set_callbacks(nearby_menu_layer, NULL, (MenuLayerCallbacks){
 		.get_num_sections = nearby_menu_get_num_sections_callback,
     .get_num_rows = nearby_menu_get_num_rows_callback,
@@ -271,40 +285,81 @@ void window_load(Window *window) {
     .draw_row = nearby_menu_draw_row_callback,
     .select_click = nearby_menu_select_callback,
 	});
-
-  // Bind the menu layer's click config provider to the window for interactivity
-  menu_layer_set_click_config_onto_window(menu_layer, window);
 	
+	// Bind the menu layer's click config provider to the window for interactivity
+  menu_layer_set_click_config_onto_window(nearby_menu_layer, window);
 
   // Add it to the window for display
-  layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
+  layer_add_child(nearby_buses_window_layer, menu_layer_get_layer(nearby_menu_layer));
+	
 }
+
+
+	
+void bus_info_window_load(Window *window) {
+	bus_info_window_layer = window_get_root_layer(window);
+	
+	
+	//add all layers to screen
+	layer_add_child(bus_info_window_layer, text_layer_get_layer(route_text_layer));
+	layer_add_child(bus_info_window_layer, text_layer_get_layer(stop_text_layer));
+	layer_add_child(bus_info_window_layer, text_layer_get_layer(direction_text_layer));
+	layer_add_child(bus_info_window_layer, text_layer_get_layer(arrival_text_layer));
+//	layer_add_child(window_layer, text_layer_get_layer(second_arrival_text_layer));	
+}
+
 
 void window_unload(Window *window) {
   // Destroy the menu layer
   menu_layer_destroy(menu_layer);
+}
+
+void nearby_buses_window_unload(){
 	menu_layer_destroy(nearby_menu_layer);
-	
+	//layer_mark_dirty(menu_layer_get_layer(menu_layer));
+		
+	window_stack_pop(window);
+	window_stack_push(window, true);
+}
+
+void bus_info_window_unload(){
 	text_layer_destroy(route_text_layer);
 	text_layer_destroy(stop_text_layer);
 	text_layer_destroy(direction_text_layer);
 	text_layer_destroy(arrival_text_layer);
 	//text_layer_destroy(second_arrival_text_layer);
+	
+	//layer_mark_dirty(menu_layer_get_layer(nearby_menu_layer));
+	
+	window_stack_pop(nearby_buses_window);
+	window_stack_push(nearby_buses_window, true);
+	
 }
-
 
 int main(void) {
   window = window_create();
+	nearby_buses_window = window_create();
+	bus_info_window = window_create();
 
   // Setup the window handlers
   window_set_window_handlers(window, (WindowHandlers) {
     .load = window_load,
     .unload = window_unload,
   });
+	window_set_window_handlers(nearby_buses_window, (WindowHandlers){
+		.load = nearby_buses_window_load,
+		.unload = nearby_buses_window_unload,
+	});
+	window_set_window_handlers(bus_info_window, (WindowHandlers){
+		.load = bus_info_window_load,
+		.unload = bus_info_window_unload,
+	});
 
   window_stack_push(window, true);
 
   app_event_loop();
 
   window_destroy(window);
+	window_destroy(nearby_buses_window);
+	window_destroy(bus_info_window);
 }
