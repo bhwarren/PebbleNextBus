@@ -2,28 +2,43 @@
 
 #define NUM_MENU_SECTIONS 1
 #define NUM_FIRST_MENU_ITEMS 4
-	
+
 #define NUM_NEARBY_BUSES 5
 #define NUM_NEARBY_MENU_SECTIONS 1
 	
 typedef struct {
-  char bus_route[5];
+  char* bus_route;
 	char* stop;
 	char* direction;
 	int arrival_time;
 	int second_arrival_time;
 } BusInfo;
 
+
+//function decs
+void window_unload(Window *window);
+void window_load(Window *window);
+
+
 static Window *window;
+
+//for testing purposes, do this the right way later
+BusInfo* b_info;
 
 // This is a menu layer
 // You have more control than with a simple menu layer
 Layer *window_layer;
 static MenuLayer *menu_layer;
 static MenuLayer *nearby_menu_layer;
-static TextLayer *bus_text_layer;
 
-
+//all text layers used for displaying 
+static TextLayer* route_text_layer;
+static TextLayer* stop_text_layer;
+static TextLayer* direction_text_layer;
+static TextLayer* arrival_text_layer;
+static TextLayer* direction_text_layer;
+static TextLayer* arrival_text_layer;
+static TextLayer* second_arrival_text_layer;
 
 // A callback is used to specify the amount of sections of menu items
 // With this, you can dynamically add and remove sections
@@ -37,22 +52,17 @@ static uint16_t nearby_menu_get_num_sections_callback(MenuLayer *menu_layer, voi
 // Each section has a number of items;  we use a callback to specify this
 // You can also dynamically add and remove items using this
 static uint16_t menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-  switch (section_index) {
-    case 0:
+  if (section_index == 0) {
       return NUM_FIRST_MENU_ITEMS;
-    default:
-      return 0;
   }
+	return 0;
 }
 
 static uint16_t nearby_menu_get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *data) {
-	switch(section_index){
-		case 0:
-			return NUM_NEARBY_BUSES;
-		//only allow one "section"
-		default:
-			return 0;
+	if (section_index == 0){
+		return NUM_NEARBY_BUSES;
 	}
+	return 0;
 }
 
 
@@ -126,8 +136,16 @@ static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer
 }
 	
 void load_nearby_menu(){
-	menu_layer_set_click_config_onto_window(nearby_menu_layer, window);
+	//hide the main menu layer
 	layer_set_hidden((Layer *)menu_layer, true);
+	//register the click handler with the bus menu
+	menu_layer_set_click_config_onto_window(nearby_menu_layer, window);
+	
+	
+	//need to get the bus options, then load them into the nearby_menu_layer
+	
+	
+	//show the nearby buses
 	layer_add_child(window_layer, menu_layer_get_layer(nearby_menu_layer));
 }
 
@@ -141,27 +159,67 @@ void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *da
 			break;
 		case 1:
 			//make a new menu of stops available nearby
+			load_nearby_menu();
 			break;
 		case 2:
 			//make a new menu to choose favorite stops already saved
+			load_nearby_menu();
 			break;
 		case 3:
 			//show a text info screen
+			load_nearby_menu();
 			break;
 	}
 }
 
-//load the specified bus view
-void load_bus_info(int i){
-	//build bus view
+//Show all of the Bus info on the screen
+void load_bus_info(BusInfo* bus_info){
+	
+	//hide nearby menu list
 	layer_set_hidden((Layer *)nearby_menu_layer, true);
-	text_layer_set_text(bus_text_layer, "hello pebble");
-	layer_add_child(window_layer, text_layer_get_layer(bus_text_layer));
+	
+	route_text_layer = text_layer_create(GRect(0,0,144,50));
+	text_layer_set_background_color(route_text_layer, GColorClear);
+  text_layer_set_text_color(route_text_layer, GColorBlack);
+	text_layer_set_text_alignment(route_text_layer, GTextAlignmentCenter);
+	
+	
+	//route layer
+	text_layer_set_font(route_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+	text_layer_set_text(route_text_layer, b_info->bus_route);
+	
+	//stop layer
+	stop_text_layer = text_layer_create(GRect(0, 50, 144, 20));
+	text_layer_set_text(stop_text_layer, b_info->stop);
+					
+	//direction layer
+	direction_text_layer = text_layer_create(GRect(0, 70, 144, 20));
+	text_layer_set_text(direction_text_layer, b_info->direction);
+	
+	//arrival time
+	arrival_text_layer = text_layer_create(GRect(0, 90, 144, 20));
+	char buff[5];
+	snprintf(buff, sizeof(buff), "%d", b_info->arrival_time);
+	text_layer_set_text(arrival_text_layer, buff);																							 
+		
+	//second arrival time
+	second_arrival_text_layer = text_layer_create(GRect(0, 110, 144, 20));
+	char buff2[5];
+	snprintf(buff2, sizeof(buff2), "%d", b_info->second_arrival_time);
+	text_layer_set_text(second_arrival_text_layer, buff2);
+
+	
+	//add all layers to screen
+	layer_add_child(window_layer, text_layer_get_layer(route_text_layer));
+	layer_add_child(window_layer, text_layer_get_layer(stop_text_layer));
+	layer_add_child(window_layer, text_layer_get_layer(direction_text_layer));
+	layer_add_child(window_layer, text_layer_get_layer(arrival_text_layer));
+	layer_add_child(window_layer, text_layer_get_layer(second_arrival_text_layer));
 }
 
 void nearby_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   // Use the row to specify which item will receive the select action
-	load_bus_info(cell_index->row);
+	load_bus_info(b_info);
 }
 
 // This initializes the menu upon window load
@@ -169,7 +227,14 @@ void window_load(Window *window) {
   // Here we load the bitmap assets
   // resource_init_current_app must be called before all asset loading
 
-
+	b_info = malloc(sizeof(BusInfo));
+	b_info->bus_route = "JFX";
+	b_info->stop = "South Columbia at Sitterson";
+	b_info->direction = "to jones ferry road";
+	b_info->arrival_time =	33;
+	b_info->second_arrival_time = 67;
+	
+	
   // Now we prepare to initialize the menu layer
   // We need the bounds to specify the menu layer's viewport size
   // In this case, it'll be the same as the window's
@@ -179,7 +244,8 @@ void window_load(Window *window) {
   // Create the menu layer
   menu_layer = menu_layer_create(bounds);
   nearby_menu_layer = menu_layer_create(bounds);
-  bus_text_layer = text_layer_create(bounds);
+	
+
 
   // Set all the callbacks for the menu layer
   menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
@@ -211,8 +277,14 @@ void window_unload(Window *window) {
   // Destroy the menu layer
   menu_layer_destroy(menu_layer);
 	menu_layer_destroy(nearby_menu_layer);
-	text_layer_destroy(bus_text_layer);
+	
+	text_layer_destroy(route_text_layer);
+	text_layer_destroy(stop_text_layer);
+	text_layer_destroy(direction_text_layer);
+	text_layer_destroy(arrival_text_layer);
+	text_layer_destroy(second_arrival_text_layer);
 }
+
 
 int main(void) {
   window = window_create();
@@ -228,4 +300,6 @@ int main(void) {
   app_event_loop();
 
   window_destroy(window);
+	
+	free(b_info);
 }
