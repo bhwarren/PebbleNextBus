@@ -3,7 +3,7 @@
 #define NUM_MENU_SECTIONS 1
 #define NUM_FIRST_MENU_ITEMS 4
 
-#define NUM_NEARBY_BUSES 15
+#define NUM_NEARBY_BUSES 5
 #define NUM_NEARBY_MENU_SECTIONS 1
 	
 typedef struct {
