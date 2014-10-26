@@ -3,7 +3,7 @@
 #define NUM_MENU_SECTIONS 1
 #define NUM_FIRST_MENU_ITEMS 4
 
-#define NUM_NEARBY_BUSES 15
+#define NUM_NEARBY_BUSES 5
 #define NUM_NEARBY_MENU_SECTIONS 1
 	
 typedef struct {
@@ -15,6 +15,20 @@ typedef struct {
 } BusInfo;
 
 BusInfo nearby_buses[NUM_NEARBY_BUSES];
+
+
+static char* js_msg_recieved = "hold on..."; // default message on load
+
+static char r_nearby_datum[160];
+	
+// Key values for AppMessage Dictionary
+enum {
+	STATUS_KEY = 0,
+	DATA_KEY,
+	DEBUG_KEY
+};
+
+int current_bus = 0;
 
 //function decs
 void window_unload(Window *window);
@@ -45,6 +59,8 @@ static TextLayer* arrival_text_layer;
 static TextLayer* direction_text_layer;
 static TextLayer* arrival_text_layer;
 //static TextLayer* second_arrival_text_layer;
+
+static TextLayer* server_stuff;
 
 // A callback is used to specify the amount of sections of menu items
 // With this, you can dynamically add and remove sections
@@ -130,20 +146,23 @@ static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer
 		// Use the row to specify which item we'll draw
 		int arr_pos = cell_index->row;
 		
+		
 		//if bus was not init, then don't do anything
 		if(strcmp(nearby_buses[arr_pos].bus_route,"")==0){
 			return;
 		}
 		
-		char title[70] = "\0";
-
+		char title[70];// = malloc(strlen(nearby_buses[arr_pos].bus_route)*2);
+		
 		strcat(title, nearby_buses[arr_pos].bus_route);
 		//strcat(title, " ");
 		//strcat(title, nearby_buses[arr_pos].stop);
 		strcat(title, "   ");
 		strcat(title, nearby_buses[arr_pos].arrival_time);
-		
+
     menu_cell_basic_draw(ctx, cell_layer, title, nearby_buses[arr_pos].stop, NULL);
+//		free(title);
+
   }
 }
 
@@ -151,24 +170,52 @@ void get_buses_from_server(){
 
 	int iterator;
 	for(iterator=0;iterator<NUM_NEARBY_BUSES;iterator++){
-		
 		BusInfo* b_info = malloc(sizeof(BusInfo));
-		if(iterator < 3){
-			b_info->bus_route = "JFX";
-			b_info->stop = "South Columbia at Sitterson";
-		b_info->direction = "to jones ferry road";
-		b_info->arrival_time =	"33";
+
+		switch(iterator){
+			case 0:
+				b_info->bus_route = "A";
+				b_info->stop = "Longview";
+				b_info->direction = "to family practice";
+				b_info->arrival_time = "15 min";
+				break;
+			case 1:
+				b_info->bus_route = "N";
+				b_info->stop = "Town hall";
+				b_info->direction = "Northside";
+				b_info->arrival_time = "30 min";
+				break;
+			case 2:
+				b_info->bus_route = "JFX";
+				b_info->stop = "Sitterson hall";
+				b_info->direction = "to jones ferry road";
+				b_info->arrival_time = "2 min";
+				break;
+			case 3:
+				b_info->bus_route = "U";
+				b_info->stop = "Parker and South Road";
+				b_info->direction = "to unc hospitals";
+				b_info->arrival_time = "8 min";
+				break;
+			case 4:
+				b_info->bus_route = "RU";
+				b_info->stop = "student stores";
+				b_info->direction = "to Franklin street";
+				b_info->arrival_time = "7 min";
+				break;
+			default:
+				b_info->bus_route = "";
+				b_info->stop = "";
+				b_info->direction = "";
+				b_info->arrival_time = "";
+				break;
 		}
-		else{
-			b_info->bus_route = "";
-			b_info->stop = "";
-			b_info->direction = "";
-			b_info->arrival_time = "";
-		}
+			
+				
 		
+			nearby_buses[iterator] = *b_info;
+			free(b_info);
 		
-		nearby_buses[iterator] = *b_info;
-		free(b_info);
 	}
 	
 }
@@ -180,7 +227,7 @@ void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *da
 	
 	//need to get the bus options, then load them into the nearby_menu_layer
 	//this is possible b/c it gets drawn only after it is added to the window
-	get_buses_from_server();
+	//get_buses_from_server();
 
 	
 	//hide the main menu layer
@@ -250,6 +297,7 @@ void window_load(Window *window) {
 
   // Create the menu layer
   menu_layer = menu_layer_create(bounds);
+	server_stuff = text_layer_create(bounds);
 	
 
   // Set all the callbacks for the menu layer
@@ -268,6 +316,7 @@ void window_load(Window *window) {
 
   // Add it to the window for display
   layer_add_child(window_layer, menu_layer_get_layer(menu_layer));
+	//layer_add_child(window_layer, text_layer_get_layer(server_stuff));
 }
 
 
@@ -312,6 +361,7 @@ void bus_info_window_load(Window *window) {
 void window_unload(Window *window) {
   // Destroy the menu layer
   menu_layer_destroy(menu_layer);
+	text_layer_destroy(server_stuff);
 }
 
 void nearby_buses_window_unload(){
@@ -336,7 +386,79 @@ void bus_info_window_unload(){
 	
 }
 
+// Write message to buffer & send
+void send_ack_message(void){
+	DictionaryIterator *iter;
+	
+	app_message_outbox_begin(&iter);
+	dict_write_uint8(iter, STATUS_KEY, 0x1);
+	
+	dict_write_end(iter);
+  app_message_outbox_send();
+}
+
+// Write message to buffer & send
+void send_nack_message(void){
+	DictionaryIterator *iter;
+	
+	app_message_outbox_begin(&iter);
+	dict_write_uint8(iter, STATUS_KEY, 0x2);
+	
+	dict_write_end(iter);
+  	app_message_outbox_send();
+}
+
+// Called when a message is received from PebbleKitJS
+static void in_received_handler(DictionaryIterator *received, void *context) {
+	Tuple *rec_debug = dict_find(received, DEBUG_KEY);
+	Tuple *rec_data = dict_find(received, DATA_KEY);
+	/*
+	if(current_bus>NUM_NEARBY_BUSES){
+			send_ack_message();
+			return;
+	}
+	char* result;
+	if (rec_debug) {
+		result = malloc(strlen(rec_debug->value->cstring));
+		text_layer_set_text(server_stuff, rec_debug->value->cstring);
+		strcpy(result,rec_debug->value->cstring);
+		
+		layer_mark_dirty(window_layer);
+		
+	} else if (rec_data) {
+		result = malloc(strlen(rec_data->value->cstring));
+		text_layer_set_text(server_stuff, rec_data->value->cstring);
+		layer_mark_dirty(window_layer);
+		strcpy(result,rec_data->value->cstring);
+	}
+	else{
+		result = " ";
+	}
+	
+	strcpy(nearby_buses[current_bus].bus_route,result);
+	nearby_buses[current_bus].arrival_time = "X";
+	nearby_buses[current_bus].stop = "X";
+	nearby_buses[current_bus].direction = "X";
+	
+	free(result);
+	current_bus++;
+	
+	*/
+	send_ack_message();
+}
+
+// Called when an incoming message from PebbleKitJS is dropped
+static void in_dropped_handler(AppMessageResult reason, void *context) {
+	send_nack_message();
+}
+
+// Called when PebbleKitJS does not acknowledge receipt of a message
+static void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
+	send_nack_message();
+}
+
 int main(void) {
+	get_buses_from_server();
   window = window_create();
 	nearby_buses_window = window_create();
 	bus_info_window = window_create();
@@ -356,10 +478,22 @@ int main(void) {
 	});
 
   window_stack_push(window, true);
+	
+	
+	app_message_register_inbox_received(in_received_handler); 
+	app_message_register_inbox_dropped(in_dropped_handler); 
+	app_message_register_outbox_failed(out_failed_handler);
+	
+	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+	
+	send_ack_message();
+	
 
   app_event_loop();
 
   window_destroy(window);
 	window_destroy(nearby_buses_window);
 	window_destroy(bus_info_window);
+	
+	app_message_deregister_callbacks();
 }
