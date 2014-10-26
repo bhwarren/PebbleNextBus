@@ -14,6 +14,7 @@ typedef struct {
 	int second_arrival_time;
 } BusInfo;
 
+BusInfo current_buses[NUM_NEARBY_BUSES];
 
 //function decs
 void window_unload(Window *window);
@@ -116,8 +117,19 @@ static void menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
   }
 }
 
+void get_buses_from_server(){
+	
+}
+
+
 static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuIndex *cell_index, void *data) {
-  // Determine which section we're going to draw in
+  	
+	
+	//need to get the bus options, then load them into the nearby_menu_layer
+	get_buses_from_server();
+	
+	
+	// Determine which section we're going to draw in
   if (cell_index->section == 0) {
       // Use the row to specify which item we'll draw
       switch (cell_index->row) {
@@ -140,11 +152,7 @@ void load_nearby_menu(){
 	layer_set_hidden((Layer *)menu_layer, true);
 	//register the click handler with the bus menu
 	menu_layer_set_click_config_onto_window(nearby_menu_layer, window);
-	
-	
-	//need to get the bus options, then load them into the nearby_menu_layer
-	
-	
+
 	//show the nearby buses
 	layer_add_child(window_layer, menu_layer_get_layer(nearby_menu_layer));
 }
@@ -177,6 +185,7 @@ void load_bus_info(BusInfo* bus_info){
 	
 	//hide nearby menu list
 	layer_set_hidden((Layer *)nearby_menu_layer, true);
+	
 	
 	route_text_layer = text_layer_create(GRect(0,0,144,50));
 	text_layer_set_background_color(route_text_layer, GColorClear);
@@ -245,7 +254,6 @@ void window_load(Window *window) {
   menu_layer = menu_layer_create(bounds);
   nearby_menu_layer = menu_layer_create(bounds);
 	
-
 
   // Set all the callbacks for the menu layer
   menu_layer_set_callbacks(menu_layer, NULL, (MenuLayerCallbacks){
