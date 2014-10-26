@@ -3,7 +3,7 @@
 #define NUM_MENU_SECTIONS 1
 #define NUM_FIRST_MENU_ITEMS 4
 
-#define NUM_NEARBY_BUSES 5
+#define NUM_NEARBY_BUSES 15
 #define NUM_NEARBY_MENU_SECTIONS 1
 	
 typedef struct {
@@ -125,6 +125,11 @@ static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer
 		// Use the row to specify which item we'll draw
 		int arr_pos = cell_index->row;
 		
+		//if bus was not init, then don't do anything
+		if(strcmp(nearby_buses[arr_pos].bus_route,"")==0){
+			return;
+		}
+		
 		char title[70] = "\0";
 
 		strcat(title, nearby_buses[arr_pos].bus_route);
@@ -141,11 +146,21 @@ void get_buses_from_server(){
 
 	int iterator;
 	for(iterator=0;iterator<NUM_NEARBY_BUSES;iterator++){
+		
 		BusInfo* b_info = malloc(sizeof(BusInfo));
-		b_info->bus_route = "JFX";
-		b_info->stop = "South Columbia at Sitterson";
+		if(iterator < 3){
+			b_info->bus_route = "JFX";
+			b_info->stop = "South Columbia at Sitterson";
 		b_info->direction = "to jones ferry road";
 		b_info->arrival_time =	"33";
+		}
+		else{
+			b_info->bus_route = "";
+			b_info->stop = "";
+b_info->direction = "";
+		b_info->arrival_time = "";
+		}
+		
 		
 		nearby_buses[iterator] = *b_info;
 		free(b_info);
@@ -177,12 +192,17 @@ void load_bus_info(int index){
 	
 	BusInfo* b_info = &(nearby_buses[index]);
 	
+	//if the bus wasn't set, then do nothing
+	if(strcmp(b_info->bus_route,"") == 0){
+		return;
+	}
+	
 	//hide nearby menu list
 	layer_set_hidden((Layer *)nearby_menu_layer, true);
 
 	route_text_layer = text_layer_create(GRect(0,0,144,50));
-	text_layer_set_background_color(route_text_layer, GColorClear);
-  text_layer_set_text_color(route_text_layer, GColorBlack);
+//	text_layer_set_background_color(route_text_layer, GColorClear);
+//  text_layer_set_text_color(route_text_layer, GColorBlack);
 	text_layer_set_text_alignment(route_text_layer, GTextAlignmentCenter);
 	
 	//route layer
@@ -198,8 +218,9 @@ void load_bus_info(int index){
 	text_layer_set_text(direction_text_layer, b_info->direction);
 	
 	//arrival time
-	arrival_text_layer = text_layer_create(GRect(0, 90, 144, 20));
+	arrival_text_layer = text_layer_create(GRect(0, 90, 144, 70));
 	text_layer_set_font(arrival_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+	text_layer_set_text_alignment(arrival_text_layer, GTextAlignmentCenter);
 	text_layer_set_text(arrival_text_layer, b_info->arrival_time);																							 
 		
 	
