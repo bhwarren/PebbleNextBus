@@ -11,7 +11,6 @@ typedef struct {
 	char* stop;
 	char* direction;
 	char* arrival_time;
-//	int second_arrival_time;
 } BusInfo;
 
 BusInfo nearby_buses[NUM_NEARBY_BUSES];
@@ -28,26 +27,24 @@ enum {
 	DEBUG_KEY
 };
 
+//iterator used for populating the nearby_buses array
 int current_bus = 0;
 
 //function decs
 void window_unload(Window *window);
 void window_load(Window *window);
 
-
+//windows that will be pushed onto the stack for UI
 static Window *window;
 static Window* nearby_buses_window;
 static Window* bus_info_window;
 
-//for testing purposes, do this the right way later
-//BusInfo* b_info;
-
-// This is a menu layer
-// You have more control than with a simple menu layer
+//window layers to place UI stuff on
 Layer *window_layer;
 Layer* nearby_buses_window_layer;
 Layer* bus_info_window_layer;
 
+//--the UI stuff that the user actually interacts with--
 static MenuLayer *menu_layer;
 static MenuLayer *nearby_menu_layer;
 
@@ -60,7 +57,16 @@ static TextLayer* direction_text_layer;
 static TextLayer* arrival_text_layer;
 //static TextLayer* second_arrival_text_layer;
 
+
+//--Endu UI stuff--
+
+
+//test text layer - DELETE
 static TextLayer* server_stuff;
+
+
+//-----------------Function Callbacks-----------------
+
 
 // A callback is used to specify the amount of sections of menu items
 // With this, you can dynamically add and remove sections
@@ -166,59 +172,6 @@ static void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer
   }
 }
 
-void get_buses_from_server(){
-
-	int iterator;
-	for(iterator=0;iterator<NUM_NEARBY_BUSES;iterator++){
-		BusInfo* b_info = malloc(sizeof(BusInfo));
-
-		switch(iterator){
-			case 0:
-				b_info->bus_route = "A";
-				b_info->stop = "Longview";
-				b_info->direction = "to family practice";
-				b_info->arrival_time = "15 min";
-				break;
-			case 1:
-				b_info->bus_route = "N";
-				b_info->stop = "Town hall";
-				b_info->direction = "Northside";
-				b_info->arrival_time = "30 min";
-				break;
-			case 2:
-				b_info->bus_route = "JFX";
-				b_info->stop = "Sitterson hall";
-				b_info->direction = "to jones ferry road";
-				b_info->arrival_time = "2 min";
-				break;
-			case 3:
-				b_info->bus_route = "U";
-				b_info->stop = "Parker and South Road";
-				b_info->direction = "to unc hospitals";
-				b_info->arrival_time = "8 min";
-				break;
-			case 4:
-				b_info->bus_route = "RU";
-				b_info->stop = "student stores";
-				b_info->direction = "to Franklin street";
-				b_info->arrival_time = "7 min";
-				break;
-			default:
-				b_info->bus_route = "";
-				b_info->stop = "";
-				b_info->direction = "";
-				b_info->arrival_time = "";
-				break;
-		}
-			
-				
-		
-			nearby_buses[iterator] = *b_info;
-			free(b_info);
-		
-	}
-	
-}
 
 // Here we capture when a user selects a menu item
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
@@ -283,6 +236,70 @@ void nearby_menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, v
   // Use the row to specify which item will receive the select action
 	load_bus_info(cell_index->row);
 }
+
+
+
+//-------------------End Callbacks-------------------------
+
+
+//this should be called when the user selectes "nearby buses"
+void get_buses_from_server(){
+
+	int iterator;
+	for(iterator=0;iterator<NUM_NEARBY_BUSES;iterator++){
+		BusInfo* b_info = malloc(sizeof(BusInfo));
+
+		switch(iterator){
+			case 0:
+				b_info->bus_route = "A";
+				b_info->stop = "Longview";
+				b_info->direction = "to family practice";
+				b_info->arrival_time = "15 min";
+				break;
+			case 1:
+				b_info->bus_route = "N";
+				b_info->stop = "Town hall";
+				b_info->direction = "Northside";
+				b_info->arrival_time = "30 min";
+				break;
+			case 2:
+				b_info->bus_route = "JFX";
+				b_info->stop = "Sitterson hall";
+				b_info->direction = "to jones ferry road";
+				b_info->arrival_time = "2 min";
+				break;
+			case 3:
+				b_info->bus_route = "U";
+				b_info->stop = "Parker and South Road";
+				b_info->direction = "to unc hospitals";
+				b_info->arrival_time = "8 min";
+				break;
+			case 4:
+				b_info->bus_route = "RU";
+				b_info->stop = "student stores";
+				b_info->direction = "to Franklin street";
+				b_info->arrival_time = "7 min";
+				break;
+			default:
+				b_info->bus_route = "";
+				b_info->stop = "";
+				b_info->direction = "";
+				b_info->arrival_time = "";
+				break;
+		}
+			
+				
+		
+			nearby_buses[iterator] = *b_info;
+			free(b_info);
+		
+	}
+	
+}
+
+
+
+//-------------------Window loading and unloading-------------------------
 
 // This initializes the menu upon window load
 void window_load(Window *window) {
@@ -386,6 +403,12 @@ void bus_info_window_unload(){
 	
 }
 
+
+//-------------------End window loading/unloading-----------------------
+
+
+//-------------------Message passing to phone-------------------------
+
 // Write message to buffer & send
 void send_ack_message(void){
 	DictionaryIterator *iter;
@@ -456,6 +479,9 @@ static void in_dropped_handler(AppMessageResult reason, void *context) {
 static void out_failed_handler(DictionaryIterator *failed, AppMessageResult reason, void *context) {
 	send_nack_message();
 }
+
+
+//-------------------------End message handling-------------------------------
 
 int main(void) {
 	get_buses_from_server();
