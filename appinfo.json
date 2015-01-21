@@ -1,16 +1,19 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "message": 1,
+        "status": 0
+    },
     "capabilities": [
         "location"
     ],
-    "companyName": "bowarren46@gmail.com",
-    "longName": "NextBus",
+    "companyName": "Vaughn and Warren Industries",
+    "longName": "ChapelHillBuses",
     "projectType": "native",
     "resources": {
         "media": []
     },
-    "shortName": "NextBus",
-    "uuid": "33c53c10-bf3c-4622-b01b-466c192df751",
+    "shortName": "ChapelHillBuses",
+    "uuid": "06869fb2-b736-4899-aada-9cd9a1bcc2ef",
     "versionCode": 1,
     "versionLabel": "1.0",
     "watchapp": {
