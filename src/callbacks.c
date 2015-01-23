@@ -1,5 +1,7 @@
 #include "window_loaders.h"
 
+time_t last_time = 0;
+
 //-----------------Function Callbacks-----------------
 
 
@@ -108,7 +110,7 @@ void nearby_menu_draw_row_callback(GContext* ctx, const Layer *cell_layer, MenuI
 }
 
 
-// Here we capture when a user selects a menu item
+// Here we capture when a user elects to get nearby buses
 void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
 	
   // Use the row to specify which item will receive the select action
@@ -118,10 +120,22 @@ void menu_select_callback(MenuLayer *menu_layer, MenuIndex *cell_index, void *da
 	//get_buses_from_server();
 
 	if(cell_index->section == 0) {
+
+		time_t tmp_time;
+
 		switch(cell_index->row){
 			case 0:
 
-				get_buses();
+				//check how long it's been since we last updated the buses.  if >30s, get the buses again
+				time_ms(&tmp_time,NULL);
+				
+				if(tmp_time-last_time > 30){
+					time_ms(&last_time,NULL);
+					get_buses();
+					APP_LOG(APP_LOG_LEVEL_DEBUG,"time difference: %ld\n", tmp_time-last_time);
+				}
+
+			
 
 
 				//hide the main menu layer

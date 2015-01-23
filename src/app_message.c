@@ -1,14 +1,8 @@
-#include "window_loaders.h"
-
-	
-//----------Todo--------------
-//get more than 6 showing	
-	
+#include "window_loaders.h"	
 	
 	
 //temp var to store messages from the phone
 char* msg;
-
 
 // Key values for AppMessage Dictionary
 enum {
@@ -22,6 +16,9 @@ enum {
 
 
 void get_buses(){ 
+
+
+	
 	
 	if(num_nearby_buses>0){
 		free_bus_info(num_nearby_buses);
@@ -31,6 +28,7 @@ void get_buses(){
 	DictionaryIterator *iter;
 	
 	app_message_outbox_begin(&iter);
+	
 	//hi is the only thing that works????
 	dict_write_cstring(iter, 1, "hif");
 	
@@ -253,6 +251,9 @@ static void in_received_handler(DictionaryIterator *received, void *context) {
 	
 	//layer_add_child(window_layer, text_layer_get_layer(text_layer));
 	send_ack_message();
+	
+
+	
 }
 
 // Called when an incoming message from PebbleKitJS is dropped

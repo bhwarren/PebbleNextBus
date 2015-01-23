@@ -1,12 +1,7 @@
 // global array holding messages to be sent
 var bus_msg_que = [];
-var bus_dup_check = [];
 
 var grabbed_data = false; // false until web scraping finishes
-
-
-//--------Todo--------------
-//have scraper get all routes, not just 6
 
 
 //keep position in global vars
@@ -60,7 +55,7 @@ function sendMessage() {
 			
 			var all_messages = "|";
 
-			while (currentNode && num_stops_recorded < 200) {
+			while (currentNode && num_stops_recorded < 20) {
 				
 				if (currentNode.className == "inBetweenRouteSpacer") {
 					//route = currentNode.childNodes[1].innerHTML;
